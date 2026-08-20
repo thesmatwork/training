@@ -1,14 +1,14 @@
-a=10
-b=20
-c=a+b
-print(c)
-d=a-c
-print(d)
-i=int(input("Enter the first number: "))
-j=int(input("Enter the second number: "))
-print("The result is: ",a*b)
-number=int(input("Enter a number: "))
-if number % 2==0:
-    print("The number is even")
+number = int(input("Enter a number: "))
+if number < 2:
+    print("Not a prime number")
 else:
-    print("The number is odd")   
+    is_prime = True
+    for i in range(2, number):
+        if number % i == 0:
+            is_prime = False
+            break
+    if is_prime:
+        print("Prime number")
+    else:
+        print("Not a prime number")    
+            
