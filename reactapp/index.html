@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X/Y Graph Plotter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>X / Y Graph Plotter</h1>
+
+    <div class="controls">
+      <div class="input-group">
+        <label for="xInput">X values (comma-separated)</label>
+        <input type="text" id="xInput" placeholder="e.g. 1,2,3,4,5" value="1,2,3,4,5,6,7,8" />
+      </div>
+
+      <div class="input-group">
+        <label for="yInput">Y values (comma-separated)</label>
+        <input type="text" id="yInput" placeholder="e.g. 10,20,15,30,25" value="4,9,2,14,7,18,3,12" />
+      </div>
+
+      <div class="input-group">
+        <label for="chartType">Chart type</label>
+        <select id="chartType">
+          <option value="line">Line</option>
+          <option value="bar">Bar</option>
+          <option value="scatter">Scatter</option>
+        </select>
+      </div>
+
+      <button id="plotBtn">Plot graph</button>
+    </div>
+
+    <p id="error" class="error"></p>
+
+    <canvas id="graphCanvas" width="800" height="450"></canvas>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
