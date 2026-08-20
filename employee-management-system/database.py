@@ -1,52 +1,40 @@
 """
 database.py
 
-Responsible ONLY for database-level tasks:
-- Connecting to the SQLite database file.
-- Creating the 'employees' table if it does not already exist.
+Responsible ONLY for one thing: connecting to Supabase.
 
-Keeping this separate from employee.py means our database setup logic
-is in one predictable place.
+There is no SQLite here, no CREATE TABLE, and no local .db file.
+The 'employees' table already exists in Postgres (see supabase_setup.sql,
+which you run once in the Supabase SQL Editor before starting the app).
+This file just builds the client that employee.py uses to talk to it.
 """
 
-import sqlite3
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
-# Name of the SQLite database file. It will be created automatically
-# in the same folder as this script the first time the program runs.
-DB_NAME = "employee_management.db"
+# Load SUPABASE_URL and SUPABASE_KEY from a local .env file.
+load_dotenv()
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 
 def create_connection():
     """
-    Creates and returns a connection to the SQLite database.
-    Returns None if the connection fails, so the caller can handle it safely.
+    Creates and returns a Supabase client.
+    Returns None if credentials are missing or the client can't be
+    created, so main.py can handle it safely instead of crashing.
     """
     try:
-        conn = sqlite3.connect(DB_NAME)
-        return conn
-    except sqlite3.Error as e:
-        print(f"Error connecting to database: {e}")
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            print("Missing SUPABASE_URL or SUPABASE_KEY.")
+            print("Create a .env file with these values (see .env.example).")
+            return None
+
+        client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        return client
+
+    except Exception as e:
+        print(f"Error connecting to Supabase: {e}")
         return None
-
-
-def create_table(conn):
-    """
-    Creates the 'employees' table if it doesn't already exist.
-    emp_id is the PRIMARY KEY, so it must be unique for every employee.
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS employees (
-                emp_id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                department TEXT NOT NULL,
-                designation TEXT NOT NULL,
-                salary REAL NOT NULL
-            )
-        """)
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f"Error creating table: {e}")
