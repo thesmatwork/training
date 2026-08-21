@@ -133,6 +133,11 @@ def add_employee(conn):
         print(f"Employee '{name}' added successfully. Employee ID: {new_id}")
 
     except Exception as e:
+        error_message = str(e)
+
+    if "employees_email_unique" in error_message or "duplicate key" in error_message:
+        print("Employee with this email already exists.")
+    else:
         print(f"Error while adding employee: {e}")
 
 
