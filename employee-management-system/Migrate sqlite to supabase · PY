@@ -1,0 +1,82 @@
+"""
+migrate_sqlite_to_supabase.py
+
+OPTIONAL, one-time helper script that copies employee records from your
+old SQLite database (employee_management.db) into the new Supabase
+'employees' table.
+
+This is a STANDALONE script -- it is not part of the main application,
+does not run automatically, and does not touch or delete the SQLite
+file. Run it manually, once, only if you want to carry over old data:
+
+    python migrate_sqlite_to_supabase.py
+
+Note on IDs: the old SQLite table used a text 'emp_id' column
+(e.g. "E001") as its primary key. The new Supabase table uses an
+auto-generated integer 'id' instead (see supabase_setup.sql), so the
+original emp_id values are NOT carried over as IDs -- they're only
+printed to the console during migration so you can cross-check. Every
+migrated employee receives a brand-new Supabase-assigned ID.
+"""
+
+import sqlite3
+import database  # reuses the same Supabase connection logic as main.py
+
+SQLITE_DB_FILE = "employee_management.db"
+
+
+def migrate():
+    print("Starting migration from SQLite to Supabase...\n")
+
+    # --- Read all records from the old SQLite database ---
+    try:
+        sqlite_conn = sqlite3.connect(SQLITE_DB_FILE)
+        cursor = sqlite_conn.cursor()
+        cursor.execute(
+            "SELECT emp_id, name, email, phone, department, designation, salary FROM employees"
+        )
+        old_rows = cursor.fetchall()
+        sqlite_conn.close()
+    except sqlite3.Error as e:
+        print(f"Could not read from '{SQLITE_DB_FILE}': {e}")
+        return
+
+    if not old_rows:
+        print("No records found in the old SQLite database. Nothing to migrate.")
+        return
+
+    print(f"Found {len(old_rows)} employee record(s) in SQLite.\n")
+
+    # --- Connect to Supabase ---
+    supabase_conn = database.create_connection()
+    if supabase_conn is None:
+        print("Could not connect to Supabase. Migration aborted.")
+        return
+
+    migrated_count = 0
+    failed_count = 0
+
+    for old_emp_id, name, email, phone, department, designation, salary in old_rows:
+        try:
+            response = supabase_conn.table("employees").insert({
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "department": department,
+                "designation": designation,
+                "salary": salary,
+            }).execute()
+
+            new_id = response.data[0]["id"] if response.data else "unknown"
+            print(f"Migrated old ID '{old_emp_id}' -> new Supabase ID {new_id} ({name})")
+            migrated_count += 1
+
+        except Exception as e:
+            print(f"Failed to migrate old ID '{old_emp_id}' ({name}): {e}")
+            failed_count += 1
+
+    print(f"\nMigration complete: {migrated_count} succeeded, {failed_count} failed.")
+
+
+if __name__ == "__main__":
+    migrate()

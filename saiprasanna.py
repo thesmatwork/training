@@ -1,5 +1,5 @@
-name=input("Enter your name: ")
-print(len(name))
-print(name.upper())
-print(name.lower())
-            
+name=input("name:")
+age=int(input("your age?: "))
+print(f"Hello,{name}!")
+print(f"you are{age} years old")
+print(f"next year, you will be {age+1}")

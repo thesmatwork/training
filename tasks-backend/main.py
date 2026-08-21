@@ -15,7 +15,14 @@ if not supabase_url or not supabase_key:
 
 supabase: Client = create_client(supabase_url, supabase_key)
 app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Vite's default dev port
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ---------- Pydantic models ----------

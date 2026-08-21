@@ -17,24 +17,23 @@ def display_menu():
     print("3. Search Employee")
     print("4. Update Employee")
     print("5. Delete Employee")
-    print("6. View Employee Details")
-    print("7. Exit")
+    print("6. Exit")
 
 
 def main():
-    # Connect to the database and make sure the table exists.
+    # Connect to Supabase. Make sure you've already run supabase_setup.sql
+    # once in your Supabase project's SQL Editor to create the table.
     conn = database.create_connection()
     if conn is None:
-        print("Could not connect to the database. Exiting.")
+        print("Could not connect to Supabase. Exiting.")
         return
-
-    database.create_table(conn)
 
     while True:
         display_menu()
-        choice = input("Enter your choice: ").strip()
 
         try:
+            choice = input("Enter your choice: ").strip()
+
             if choice == "1":
                 employee.add_employee(conn)
             elif choice == "2":
@@ -46,21 +45,15 @@ def main():
             elif choice == "5":
                 employee.delete_employee(conn)
             elif choice == "6":
-                employee.view_employee_details(conn)
-            elif choice == "7":
                 print("Thank you for using Employee Management System. Goodbye!")
                 break
             else:
-                print("Invalid choice. Please enter a number between 1 and 7.")
+                print("Invalid choice. Please enter a number between 1 and 6.")
 
         except KeyboardInterrupt:
-            # Lets the user press Ctrl+C without an ugly traceback.
             print("\nOperation cancelled by user.")
         except Exception as e:
-            # Final safety net so an unexpected error never crashes the app.
             print(f"Something went wrong: {e}")
-
-    conn.close()
 
 
 if __name__ == "__main__":
