@@ -17,6 +17,7 @@ supabase: Client = create_client(supabase_url, supabase_key)
 app = FastAPI()
 
 
+
 # ---------- Pydantic models ----------
 
 class TaskCreate(BaseModel):
