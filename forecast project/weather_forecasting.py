@@ -13,13 +13,9 @@ def get_weather(request: WeatherRequest):
         "appid": api_key,
         "units": "metric"
     }
-
     response = requests.get(url, params=params)
-
     data = response.json()
-
     temperature = data["main"]["temp"]
-
     return {
         "city": request.city,
         "temperature": temperature
