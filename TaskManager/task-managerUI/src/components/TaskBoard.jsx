@@ -12,8 +12,8 @@ const STATUSES = ["pending", "in_progress", "completed"];
 
 const STATUS_STYLES = {
   pending: { label: "Pending", dot: "#B45309", bg: "#FEF3E2", fg: "#92400E" },
-  in_progress: { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
-  completed: { label: "Completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
+  "in_progress": { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
+  completed: { label: "completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
 };
 
 function relativeTime(iso) {
@@ -71,6 +71,30 @@ function getUserStore(email) {
   return mockTasksByUser.get(key);
 }
 
+let mockTasks = [
+  {
+    id: 1,
+    title: "Finish backend API",
+    description: "Add CRUD endpoints for tasks",
+    status: "completed",
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 2,
+    title: "Wire up frontend",
+    description: "Connect React UI to /tasks endpoints",
+    status: "in_progress",
+    created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+  },
+  {
+    id: 3,
+    title: "Ask Sai about CORS",
+    description: "",
+    status: "pending",
+    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+  },
+];
+let mockNextId = 4;
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function mockApiRequest(path, options = {}, email) {
