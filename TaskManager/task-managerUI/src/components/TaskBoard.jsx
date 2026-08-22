@@ -8,12 +8,12 @@ const API_BASE = "http://127.0.0.1:8000";
 // so the UI can be exercised without the FastAPI server running.
 const MOCK_MODE = false;
 
-const STATUSES = ["pending", "in progress", "done"];
+const STATUSES = ["pending", "in_progress", "completed"];
 
 const STATUS_STYLES = {
   pending: { label: "Pending", dot: "#B45309", bg: "#FEF3E2", fg: "#92400E" },
-  "in progress": { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
-  done: { label: "Done", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
+  "in_progress": { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
+  completed: { label: "completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
 };
 
 function relativeTime(iso) {
@@ -35,14 +35,14 @@ let mockTasks = [
     id: 1,
     title: "Finish backend API",
     description: "Add CRUD endpoints for tasks",
-    status: "done",
+    status: "completed",
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
   },
   {
     id: 2,
     title: "Wire up frontend",
     description: "Connect React UI to /tasks endpoints",
-    status: "in progress",
+    status: "in_progress",
     created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
   },
   {
