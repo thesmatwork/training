@@ -13,12 +13,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 api_key = "c74c1ad229b52a9831ae12898c1f4797"
 class WeatherRequest(BaseModel):
     city: str
 @app.post("/weather")
 def get_weather(request: WeatherRequest):
+
     url = "https://api.openweathermap.org/data/2.5/weather"
+
     params = {
         "q": request.city,
         "appid": api_key,
