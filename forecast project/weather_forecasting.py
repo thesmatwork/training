@@ -19,21 +19,22 @@ class WeatherRequest(BaseModel):
 @app.post("/weather")
 def get_weather(request: WeatherRequest):
     url = "https://api.openweathermap.org/data/2.5/weather"
-
     params = {
         "q": request.city,
         "appid": api_key,
         "units": "metric"
     }
-
     response = requests.get(url, params=params)
     data = response.json()
     print(data)
-    if response.status_code != 200:
-        return {"error": "Invalid city"}
-
-    temperature = data["main"]["temp"]
-
+    # if response.status_code != 200:
+    #     return {"error": "Invalid city"}
+    if data.get("main"):
+        temperature = data["main"]["temp"]
+    elif data.get("message"):
+        temperature = data["message"]
+    else:
+        temperature = "Unknwon Error "    
     return {
         "city": request.city,
         "temperature": temperature
