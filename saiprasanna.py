@@ -1,5 +1,0 @@
-name=input("name:")
-age=int(input("your age?: "))
-print(f"Hello,{name}!")
-print(f"you are{age} years old")
-print(f"next year, you will be {age+1}")
