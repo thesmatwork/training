@@ -6,9 +6,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:5174"
-],
+        "http://localhost:5173",
+        "http://localhost:5174"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -19,15 +19,21 @@ class WeatherRequest(BaseModel):
 @app.post("/weather")
 def get_weather(request: WeatherRequest):
     url = "https://api.openweathermap.org/data/2.5/weather"
+
     params = {
         "q": request.city,
         "appid": api_key,
         "units": "metric"
     }
+
     response = requests.get(url, params=params)
     data = response.json()
     print(data)
+    if response.status_code != 200:
+        return {"error": "Invalid city"}
+
     temperature = data["main"]["temp"]
+
     return {
         "city": request.city,
         "temperature": temperature

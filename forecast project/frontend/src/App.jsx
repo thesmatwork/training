@@ -12,6 +12,7 @@ function App() {
 
     if (!city.trim()) {
       setError("Please enter a city name.");
+      setWeather(null);
       return;
     }
 
@@ -35,9 +36,22 @@ function App() {
       }
 
       const data = await response.json();
+
+      // Check if FastAPI returned an error
+      if (data.error) {
+        setError(data.error);
+        setWeather(null);
+        return;
+      }
+
+      // If weather data is valid
       setWeather(data);
+
     } catch (err) {
-      setError("Could not fetch weather. Please check your city and try again.");
+      setError(
+        "Could not fetch weather. Please check your city and try again."
+      );
+      setWeather(null);
     } finally {
       setLoading(false);
     }
@@ -49,6 +63,8 @@ function App() {
       <div className="background-glow glow-two"></div>
 
       <section className="weather-container">
+
+        {/* Header */}
         <header className="header">
           <div className="logo">
             <span className="logo-icon">☁️</span>
@@ -60,7 +76,9 @@ function App() {
           </p>
         </header>
 
+        {/* Hero Section */}
         <section className="hero-section">
+
           <div className="hero-content">
             <span className="eyebrow">WEATHER FORECAST</span>
 
@@ -74,6 +92,7 @@ function App() {
               Enter a city below to get the latest weather information.
             </p>
 
+            {/* Search Form */}
             <form className="search-box" onSubmit={getWeather}>
               <span className="search-icon">⌕</span>
 
@@ -89,17 +108,25 @@ function App() {
               </button>
             </form>
 
-            {error && <p className="error-message">{error}</p>}
+            {/* Error Message */}
+            {error && (
+              <p className="error-message">
+                {error}
+              </p>
+            )}
           </div>
 
+          {/* Weather Illustration */}
           <div className="weather-illustration">
             <div className="sun"></div>
             <div className="cloud cloud-one">☁</div>
             <div className="cloud cloud-two">☁</div>
             <div className="rain">••••••</div>
           </div>
+
         </section>
 
+        {/* Loading */}
         {loading && (
           <div className="loading-card">
             <div className="spinner"></div>
@@ -107,63 +134,105 @@ function App() {
           </div>
         )}
 
+        {/* Weather Card */}
         {weather && !loading && (
           <section className="weather-card">
+
             <div className="weather-card-top">
+
               <div>
-                <span className="location-label">CURRENT WEATHER</span>
+                <span className="location-label">
+                  CURRENT WEATHER
+                </span>
+
                 <h2>{weather.city}</h2>
               </div>
 
-              <div className="weather-icon">🌤️</div>
+              <div className="weather-icon">
+                🌤️
+              </div>
+
             </div>
 
+            {/* Temperature */}
             <div className="temperature">
               {weather.temperature}
               <span>°C</span>
             </div>
 
-            <p className="weather-status">Current temperature</p>
+            <p className="weather-status">
+              Current temperature
+            </p>
 
+            {/* Weather Details */}
             <div className="weather-details">
+
               <div className="detail">
-                <span className="detail-icon">🌡️</span>
+                <span className="detail-icon">
+                  🌡️
+                </span>
+
                 <div>
                   <small>Temperature</small>
-                  <strong>{weather.temperature} °C</strong>
+
+                  <strong>
+                    {weather.temperature} °C
+                  </strong>
                 </div>
               </div>
 
               <div className="detail">
-                <span className="detail-icon">📍</span>
+                <span className="detail-icon">
+                  📍
+                </span>
+
                 <div>
                   <small>Location</small>
-                  <strong>{weather.city}</strong>
+
+                  <strong>
+                    {weather.city}
+                  </strong>
                 </div>
               </div>
 
               <div className="detail">
-                <span className="detail-icon">☀️</span>
+                <span className="detail-icon">
+                  ☀️
+                </span>
+
                 <div>
                   <small>Status</small>
-                  <strong>Available</strong>
+
+                  <strong>
+                    Available
+                  </strong>
                 </div>
               </div>
+
             </div>
+
           </section>
         )}
 
-        {!weather && !loading && (
+        {/* Empty State */}
+        {!weather && !loading && !error && (
           <section className="empty-state">
-            <div className="empty-icon">🌍</div>
-            <h3>Search for a city</h3>
+
+            <div className="empty-icon">
+              🌍
+            </div>
+
+            <h3>
+              Search for a city
+            </h3>
+
             <p>
               Discover the current weather conditions for any city.
             </p>
+
           </section>
         )}
 
-        
       </section>
     </main>
   );
