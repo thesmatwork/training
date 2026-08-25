@@ -124,10 +124,12 @@ def verify_otp(request: OtpVerifyRequest):
     token = response.session.access_token
     user_supabase = get_supabase_for_user(token)
 
-    # If a name was provided, update it (profile already auto-created by the trigger)
     if request.name:
-        user_supabase.table("profiles").update({"name": request.name}).eq("id", user.id).execute()
-
+        user_supabase.table("profiles").upsert({
+            "id": user.id,
+            "phone": user.phone,
+            "name": request.name,
+        }).execute()
 
     profile = user_supabase.table("profiles").select("*").eq("id", user.id).execute()
     name_to_return = profile.data[0]["name"] if profile.data else "New User"
