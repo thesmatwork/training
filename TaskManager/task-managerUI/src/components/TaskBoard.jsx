@@ -1,28 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { MOCK_MODE, API_BASE } from "./config";
 
-<<<<<<< HEAD
-=======
-const API_BASE = "http://127.0.0.1:8000";
-
-// Flip to false once Sai's backend is reachable at API_BASE.
-// While true, all requests are served from an in-memory mock that
-// mirrors the real API's shapes and error cases (404 / 422 / 500),
-// so the UI can be exercised without the FastAPI server running.
-const MOCK_MODE = false;
-
->>>>>>> 4917ba31ebc5731c229cfcc745fd21cb7dc737d4
 const STATUSES = ["pending", "in_progress", "completed"];
 
 const STATUS_STYLES = {
   pending: { label: "Pending", dot: "#B45309", bg: "#FEF3E2", fg: "#92400E" },
-<<<<<<< HEAD
   in_progress: { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
   completed: { label: "Completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
-=======
-  "in_progress": { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
-  completed: { label: "completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
->>>>>>> 4917ba31ebc5731c229cfcc745fd21cb7dc737d4
 };
 
 function relativeTime(iso) {
@@ -39,7 +23,6 @@ function relativeTime(iso) {
 }
 
 // --- Mock backend (used only while MOCK_MODE is true) ---------------------
-<<<<<<< HEAD
 // Tasks are kept separately per logged-in user (keyed by phone) so that
 // two different mock accounts never see each other's tasks.
 const mockTasksByUser = new Map(); // phone -> { tasks: [...], nextId: number }
@@ -83,32 +66,6 @@ function getUserStore(phone) {
 
 const mockProfiles = new Map(); // phone -> { name }
 
-=======
-let mockTasks = [
-  {
-    id: 1,
-    title: "Finish backend API",
-    description: "Add CRUD endpoints for tasks",
-    status: "completed",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-  },
-  {
-    id: 2,
-    title: "Wire up frontend",
-    description: "Connect React UI to /tasks endpoints",
-    status: "in_progress",
-    created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-  },
-  {
-    id: 3,
-    title: "Ask Sai about CORS",
-    description: "",
-    status: "pending",
-    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-];
-let mockNextId = 4;
->>>>>>> 4917ba31ebc5731c229cfcc745fd21cb7dc737d4
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function mockApiRequest(path, options = {}, phone, fallbackName) {
