@@ -4,7 +4,7 @@ import { MOCK_MODE, API_BASE } from "./config";
 // --- Mock auth (used only while MOCK_MODE is true) -------------------------
 // Every phone number accepts the fixed code below — no real SMS is sent.
 const MOCK_OTP_CODE = "123456";
-const mockProfiles = new Map(); // phone -> name
+const mockProfiles = new Map(); // phone -> name (only set once a name has been collected)
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function mockSendOtp(phone) {
@@ -24,14 +24,21 @@ async function mockVerifyOtp(phone, code, name) {
     err.status = 401;
     throw err;
   }
-  const resolvedName = (name && name.trim()) || mockProfiles.get(phone) || "";
-  if (resolvedName) mockProfiles.set(phone, resolvedName);
+  const existingName = mockProfiles.get(phone);
+  const providedName = name && name.trim();
+
+  if (providedName) mockProfiles.set(phone, providedName);
+
+  const resolvedName = providedName || existingName || "";
+  const isNewUser = !existingName && !providedName; // no name on file yet, and none given this call
+
   return {
     access_token: `mock-token-${phone}-${Date.now()}`,
     refresh_token: `mock-refresh-${phone}`,
     user_id: `mock-${phone}`,
     phone,
     name: resolvedName,
+    is_new_user: isNewUser,
   };
 }
 // ---------------------------------------------------------------------------
@@ -89,8 +96,32 @@ const inputStyle = {
   letterSpacing: 0.3,
 };
 
+const primaryButtonStyle = (submitting) => ({
+  fontFamily: "inherit",
+  fontSize: 15,
+  fontWeight: 600,
+  padding: "10px 18px",
+  borderRadius: 8,
+  border: "none",
+  background: submitting ? "#C99A6B" : "#B45309",
+  color: "#FFF8EF",
+  cursor: submitting ? "default" : "pointer",
+  marginTop: 4,
+});
+
+const textButtonStyle = (color = "#B45309") => ({
+  background: "none",
+  border: "none",
+  color,
+  fontWeight: 600,
+  cursor: "pointer",
+  padding: 0,
+  font: "inherit",
+  fontSize: 13.5,
+});
+
 export default function AuthScreen({ onLoggedIn, initialMessage }) {
-  const [step, setStep] = useState("phone"); // "phone" | "otp"
+  const [step, setStep] = useState("phone"); // "phone" | "otp" | "name"
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
@@ -138,6 +169,7 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
     await sendOtpTo(phone.trim());
   };
 
+  // Step 2: verify the code only — no name sent yet.
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError(null);
@@ -147,6 +179,28 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
       setError("Enter the code you received.");
       return;
     }
+
+    setSubmitting(true);
+    try {
+      const data = await authRequest("/verify-otp", { phone: phone.trim(), token: otp.trim() });
+      if (data.is_new_user) {
+        setStep("name");
+      } else {
+        onLoggedIn({ token: data.access_token, phone: data.phone || phone.trim(), name: data.name || "" });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Step 3 (only for new users): verify again, this time including the name.
+  const handleSubmitName = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+
     if (!name.trim()) {
       setError("Enter your name.");
       return;
@@ -157,7 +211,7 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
       const data = await authRequest("/verify-otp", {
         phone: phone.trim(),
         token: otp.trim(),
-        name: name.trim() || undefined,
+        name: name.trim(),
       });
       onLoggedIn({ token: data.access_token, phone: data.phone || phone.trim(), name: data.name || name.trim() });
     } catch (err) {
@@ -174,6 +228,15 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
     setError(null);
     setInfo(null);
   };
+
+  const backToOtp = () => {
+    setStep("otp");
+    setName("");
+    setError(null);
+    setInfo(null);
+  };
+
+  const titles = { phone: "Log in", otp: "Enter code", name: "What's your name?" };
 
   return (
     <div
@@ -199,11 +262,9 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
           boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
         }}
       >
-        <h1 style={{ fontSize: 26, margin: "0 0 20px", fontWeight: 600, letterSpacing: -0.3 }}>
-          {step === "phone" ? "Log in" : "Enter code"}
-        </h1>
+        <h1 style={{ fontSize: 26, margin: "0 0 20px", fontWeight: 600, letterSpacing: -0.3 }}>{titles[step]}</h1>
 
-        {step === "phone" ? (
+        {step === "phone" && (
           <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 12.5, color: "#6B6558", marginBottom: 4 }}>
@@ -213,7 +274,7 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91XXXXXXXXXX"
+                placeholder="Enter Your Number"
                 autoComplete="tel"
                 style={inputStyle}
                 onFocus={(e) => (e.target.style.borderColor = "#B45309")}
@@ -224,26 +285,13 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
             {error && <div style={{ fontSize: 13, color: "#B4332F" }}>{error}</div>}
             {info && <div style={{ fontSize: 13, color: "#166534" }}>{info}</div>}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                fontFamily: "inherit",
-                fontSize: 15,
-                fontWeight: 600,
-                padding: "10px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: submitting ? "#C99A6B" : "#B45309",
-                color: "#FFF8EF",
-                cursor: submitting ? "default" : "pointer",
-                marginTop: 4,
-              }}
-            >
+            <button type="submit" disabled={submitting} style={primaryButtonStyle(submitting)}>
               {submitting ? "Sending code…" : "Send code"}
             </button>
           </form>
-        ) : (
+        )}
+
+        {step === "otp" && (
           <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontSize: 13.5, color: "#6B6558" }}>
               Code sent to <strong>{phone.trim()}</strong>
@@ -265,6 +313,34 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
               />
             </div>
 
+            {error && <div style={{ fontSize: 13, color: "#B4332F" }}>{error}</div>}
+          
+
+            <button type="submit" disabled={submitting} style={primaryButtonStyle(submitting)}>
+              {submitting ? "Verifying…" : "Verify"}
+            </button>
+
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+              <button type="button" onClick={backToPhone} style={textButtonStyle("#6B6558")}>
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={submitting}
+                style={textButtonStyle(submitting ? "#C99A6B" : "#B45309")}
+              >
+                Resend code
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === "name" && (
+          <form onSubmit={handleSubmitName} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 13.5, color: "#6B6558" }}>
+              First time here — what should we call you?
+            </div>
             <div>
               <label style={{ display: "block", fontSize: 12.5, color: "#6B6558", marginBottom: 4 }}>
                 Your name
@@ -282,62 +358,15 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
             </div>
 
             {error && <div style={{ fontSize: 13, color: "#B4332F" }}>{error}</div>}
-            {info && <div style={{ fontSize: 13, color: "#166534" }}>{info}</div>}
+            
 
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                fontFamily: "inherit",
-                fontSize: 15,
-                fontWeight: 600,
-                padding: "10px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: submitting ? "#C99A6B" : "#B45309",
-                color: "#FFF8EF",
-                cursor: submitting ? "default" : "pointer",
-                marginTop: 4,
-              }}
-            >
-              {submitting ? "Verifying…" : "Verify & log in"}
+            <button type="submit" disabled={submitting} style={primaryButtonStyle(submitting)}>
+              {submitting ? "Saving…" : "Continue"}
             </button>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-              <button
-                type="button"
-                onClick={backToPhone}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#6B6558",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  padding: 0,
-                  font: "inherit",
-                  fontSize: 13.5,
-                }}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                disabled={submitting}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: submitting ? "#C99A6B" : "#B45309",
-                  fontWeight: 600,
-                  cursor: submitting ? "default" : "pointer",
-                  padding: 0,
-                  font: "inherit",
-                  fontSize: 13.5,
-                }}
-              >
-                Resend code
-              </button>
-            </div>
+            <button type="button" onClick={backToOtp} style={{ ...textButtonStyle("#6B6558"), textAlign: "center" }}>
+              Back
+            </button>
           </form>
         )}
       </div>
