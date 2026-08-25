@@ -124,9 +124,8 @@ def verify_otp(request: OtpVerifyRequest):
     token = response.session.access_token
     user_supabase = get_supabase_for_user(token)
 
-    # Check BEFORE upserting whether this profile already had a real name
     existing = user_supabase.table("profiles").select("*").eq("id", user.id).execute()
-    is_new_user = (not existing.data) or (existing.data[0]["name"] == "New User")
+    is_new_user = (not existing.data) or (not existing.data[0]["name"])
 
     if request.name:
         user_supabase.table("profiles").upsert({
@@ -136,7 +135,7 @@ def verify_otp(request: OtpVerifyRequest):
         }).execute()
 
     profile = user_supabase.table("profiles").select("*").eq("id", user.id).execute()
-    name_to_return = profile.data[0]["name"] if profile.data else "New User"
+    name_to_return = profile.data[0]["name"] if profile.data else None
 
     return {
         "access_token": response.session.access_token,
@@ -145,6 +144,7 @@ def verify_otp(request: OtpVerifyRequest):
         "phone": user.phone,
         "name": name_to_return,
         "is_new_user": is_new_user,
+
     }
 
 # ---------- Profile routes ----------
