@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { MOCK_MODE, API_BASE } from "./config";
 
-const API_BASE = "http://192.168.1.13:8000";
-
-// Flip to false once Sai's backend is reachable at API_BASE.
-// While true, all requests are served from an in-memory mock that
-// mirrors the real API's shapes and error cases (404 / 422 / 500),
-// so the UI can be exercised without the FastAPI server running.
-const MOCK_MODE = false;
-
-const STATUSES = ["pending", "in progress", "done"];
+const STATUSES = ["pending", "in_progress", "completed"];
 
 const STATUS_STYLES = {
   pending: { label: "Pending", dot: "#B45309", bg: "#FEF3E2", fg: "#92400E" },
-  "in progress": { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
-  done: { label: "Done", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
+  in_progress: { label: "In progress", dot: "#1D4ED8", bg: "#EAF0FE", fg: "#1E40AF" },
+  completed: { label: "Completed", dot: "#15803D", bg: "#E8F6EC", fg: "#166534" },
 };
 
 function relativeTime(iso) {
@@ -30,36 +23,56 @@ function relativeTime(iso) {
 }
 
 // --- Mock backend (used only while MOCK_MODE is true) ---------------------
-let mockTasks = [
-  {
-    id: 1,
-    title: "Finish backend API",
-    description: "Add CRUD endpoints for tasks",
-    status: "done",
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-  },
-  {
-    id: 2,
-    title: "Wire up frontend",
-    description: "Connect React UI to /tasks endpoints",
-    status: "in progress",
-    created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-  },
-  {
-    id: 3,
-    title: "Ask Sai about CORS",
-    description: "",
-    status: "pending",
-    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-];
-let mockNextId = 4;
+// Tasks are kept separately per logged-in user (keyed by phone) so that
+// two different mock accounts never see each other's tasks.
+const mockTasksByUser = new Map(); // phone -> { tasks: [...], nextId: number }
+
+function seedTasksFor() {
+  return {
+    tasks: [
+      {
+        id: 1,
+        title: "Finish backend API",
+        description: "Add CRUD endpoints for tasks",
+        status: "completed",
+        created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      },
+      {
+        id: 2,
+        title: "Wire up frontend",
+        description: "Connect React UI to /tasks endpoints",
+        status: "in_progress",
+        created_at: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+      },
+      {
+        id: 3,
+        title: "Ask Sai about CORS",
+        description: "",
+        status: "pending",
+        created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      },
+    ],
+    nextId: 4,
+  };
+}
+
+function getUserStore(phone) {
+  const key = phone || "anonymous";
+  if (!mockTasksByUser.has(key)) {
+    mockTasksByUser.set(key, seedTasksFor());
+  }
+  return mockTasksByUser.get(key);
+}
+
+const mockProfiles = new Map(); // phone -> { name }
+
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
-async function mockApiRequest(path, options = {}) {
+async function mockApiRequest(path, options = {}, phone, fallbackName) {
   await delay(350 + Math.random() * 300); // simulate network latency
   const method = options.method || "GET";
   const body = options.body ? JSON.parse(options.body) : undefined;
+  const store = getUserStore(phone);
 
   const notFound = () => {
     const err = new Error("That task no longer exists.");
@@ -67,8 +80,22 @@ async function mockApiRequest(path, options = {}) {
     throw err;
   };
 
+  if (path === "/profile" && method === "GET") {
+    if (!mockProfiles.has(phone)) {
+      mockProfiles.set(phone, { name: fallbackName || "" });
+    }
+    return { id: `mock-${phone}`, phone, created_at: new Date().toISOString(), ...mockProfiles.get(phone) };
+  }
+
+  if (path === "/profile" && method === "PUT") {
+    const current = mockProfiles.get(phone) || { name: "" };
+    const updated = { ...current, name: body?.name ?? current.name };
+    mockProfiles.set(phone, updated);
+    return { id: `mock-${phone}`, phone, created_at: new Date().toISOString(), ...updated };
+  }
+
   if (path === "/tasks" && method === "GET") {
-    return JSON.parse(JSON.stringify(mockTasks));
+    return JSON.parse(JSON.stringify(store.tasks));
   }
 
   if (path === "/tasks" && method === "POST") {
@@ -78,24 +105,24 @@ async function mockApiRequest(path, options = {}) {
       throw err;
     }
     const task = {
-      id: mockNextId++,
+      id: store.nextId++,
       title: body.title.trim(),
       description: body.description || "",
       status: body.status || "pending",
       created_at: new Date().toISOString(),
     };
-    mockTasks.push(task);
+    store.tasks.push(task);
     return task;
   }
 
   const idMatch = path.match(/^\/tasks\/(\d+)$/);
   if (idMatch) {
     const id = Number(idMatch[1]);
-    const idx = mockTasks.findIndex((t) => t.id === id);
+    const idx = store.tasks.findIndex((t) => t.id === id);
 
     if (method === "GET") {
       if (idx === -1) notFound();
-      return mockTasks[idx];
+      return store.tasks[idx];
     }
     if (method === "PUT") {
       if (idx === -1) notFound();
@@ -104,12 +131,12 @@ async function mockApiRequest(path, options = {}) {
         err.status = 422;
         throw err;
       }
-      mockTasks[idx] = { ...mockTasks[idx], ...body };
-      return mockTasks[idx];
+      store.tasks[idx] = { ...store.tasks[idx], ...body };
+      return store.tasks[idx];
     }
     if (method === "DELETE") {
       if (idx === -1) notFound();
-      mockTasks.splice(idx, 1);
+      store.tasks.splice(idx, 1);
       return { message: `Task ${id} deleted successfully` };
     }
   }
@@ -120,10 +147,19 @@ async function mockApiRequest(path, options = {}) {
 }
 // ---------------------------------------------------------------------------
 
-async function apiRequest(path, options) {
+// Thrown when a task request comes back 401 — the token is missing/expired.
+// The caller (TaskBoard) catches this specifically and kicks back to login.
+class UnauthorizedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+async function apiRequest(path, options, token, phone, fallbackName) {
   if (MOCK_MODE) {
     try {
-      return await mockApiRequest(path, options);
+      return await mockApiRequest(path, options, phone, fallbackName);
     } catch (err) {
       if (err.status === 404) throw new Error("That task no longer exists.");
       if (err.status === 422) throw new Error(err.message);
@@ -134,13 +170,20 @@ async function apiRequest(path, options) {
   let res;
   try {
     res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       ...options,
     });
   } catch (err) {
     throw new Error(
       "Can't reach the backend. Make sure it's running at " + API_BASE + " (and check for CORS errors in the console)."
     );
+  }
+
+  if (res.status === 401) {
+    throw new UnauthorizedError("Your session expired. Please log in again.");
   }
 
   if (!res.ok) {
@@ -217,8 +260,9 @@ function Toast({ message, kind, onClose }) {
   );
 }
 
-export default function TaskBoard() {
+export default function TaskBoard({ token, phone, name, onLogout }) {
   const [tasks, setTasks] = useState([]);
+  const [profileName, setProfileName] = useState(name || "");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -246,18 +290,33 @@ export default function TaskBoard() {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await apiRequest("/tasks");
+      const data = await apiRequest("/tasks", undefined, token, phone);
       setTasks(Array.isArray(data) ? data : []);
     } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onLogout(err.message);
+        return;
+      }
       setLoadError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token, phone, onLogout]);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const profile = await apiRequest("/profile", undefined, token, phone, name);
+      if (profile?.name) setProfileName(profile.name);
+    } catch (err) {
+      // Non-critical — fall back to whatever name came from login, no user-facing error needed.
+      if (err instanceof UnauthorizedError) onLogout(err.message);
+    }
+  }, [token, phone, name, onLogout]);
 
   useEffect(() => {
     loadTasks();
-  }, [loadTasks]);
+    loadProfile();
+  }, [loadTasks, loadProfile]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -271,15 +330,21 @@ export default function TaskBoard() {
     try {
       const body = { title: trimmedTitle };
       if (description.trim()) body.description = description.trim();
-      const created = await apiRequest("/tasks", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
+      const created = await apiRequest(
+        "/tasks",
+        { method: "POST", body: JSON.stringify(body) },
+        token,
+        phone
+      );
       setTasks((prev) => [...prev, created]);
       setTitle("");
       setDescription("");
       showToast(`Added "${created.title}"`);
     } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onLogout(err.message);
+        return;
+      }
       setFormError(err.message);
     } finally {
       setSubmitting(false);
@@ -292,13 +357,19 @@ export default function TaskBoard() {
     const prevTasks = tasks;
     setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status } : t)));
     try {
-      const updated = await apiRequest(`/tasks/${task.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
+      const updated = await apiRequest(
+        `/tasks/${task.id}`,
+        { method: "PUT", body: JSON.stringify({ status }) },
+        token,
+        phone
+      );
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
     } catch (err) {
       setTasks(prevTasks);
+      if (err instanceof UnauthorizedError) {
+        onLogout(err.message);
+        return;
+      }
       showToast(err.message, "error");
     } finally {
       markBusy(task.id, false);
@@ -310,10 +381,14 @@ export default function TaskBoard() {
     const prevTasks = tasks;
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
     try {
-      await apiRequest(`/tasks/${task.id}`, { method: "DELETE" });
+      await apiRequest(`/tasks/${task.id}`, { method: "DELETE" }, token, phone);
       showToast(`Deleted "${task.title}"`);
     } catch (err) {
       setTasks(prevTasks);
+      if (err instanceof UnauthorizedError) {
+        onLogout(err.message);
+        return;
+      }
       showToast(err.message, "error");
     } finally {
       markBusy(task.id, false);
@@ -336,21 +411,27 @@ export default function TaskBoard() {
     }
     markBusy(task.id, true);
     try {
-      const updated = await apiRequest(`/tasks/${task.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ title: trimmedTitle, description: editDescription.trim() }),
-      });
+      const updated = await apiRequest(
+        `/tasks/${task.id}`,
+        { method: "PUT", body: JSON.stringify({ title: trimmedTitle, description: editDescription.trim() }) },
+        token,
+        phone
+      );
       setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
       setEditingId(null);
       showToast("Task updated");
     } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        onLogout(err.message);
+        return;
+      }
       showToast(err.message, "error");
     } finally {
       markBusy(task.id, false);
     }
   };
 
-  const remaining = tasks.filter((t) => t.status !== "done").length;
+  const remaining = tasks.filter((t) => t.status !== "completed").length;
 
   return (
     <div
@@ -363,23 +444,35 @@ export default function TaskBoard() {
       }}
     >
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
-        <header style={{ marginBottom: 28 }}>
-          <div
-            style={{
-              fontFamily: "'Courier New', monospace",
-              fontSize: 11,
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              color: "#8A8371",
-              marginBottom: 6,
-            }}
-          >
-            Ledger &middot; local backend
+        <header style={{ marginBottom: 28, display: "center", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h1 style={{ fontSize: 32, margin: 0, fontWeight: 600, letterSpacing: -0.3 }}>Task board</h1>
+            <p style={{ margin: "6px 0 0", fontSize: 14, color: "#6B6558" }}>
+              {loading ? "Loading tasks…" : `${remaining} open of ${tasks.length} total`}
+            </p>
           </div>
-          <h1 style={{ fontSize: 32, margin: 0, fontWeight: 600, letterSpacing: -0.3 }}>Task board</h1>
-          <p style={{ margin: "6px 0 0", fontSize: 14, color: "#6B6558" }}>
-            {loading ? "Loading tasks…" : `${remaining} open of ${tasks.length} total`}
-          </p>
+          <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+            {profileName && (
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "#3A362C", marginBottom: 6 }}>
+                Welcome, {profileName}
+              </div>
+            )}
+            <button
+              onClick={() => onLogout()}
+              style={{
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                padding: "5px 12px",
+                borderRadius: 7,
+                border: "1px solid #DAD5C7",
+                background: "transparent",
+                color: "#5C5749",
+                cursor: "pointer",
+              }}
+            >
+              Log out
+            </button>
+          </div>
         </header>
 
         <form
@@ -598,11 +691,11 @@ export default function TaskBoard() {
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 16, fontWeight: 600 }}>{task.title}</span>
+                          <span style={{ fontSize: 16, fontWeight: 600, overflowWrap: "anywhere" }}>{task.title}</span>
                           <span style={{ fontSize: 11.5, color: "#A6A08E" }}>{relativeTime(task.created_at)}</span>
                         </div>
                         {task.description && (
-                          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "#5C5749", lineHeight: 1.45 }}>
+                          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "#5C5749", lineHeight: 1.45, overflowWrap: "anywhere" }}>
                             {task.description}
                           </p>
                         )}
