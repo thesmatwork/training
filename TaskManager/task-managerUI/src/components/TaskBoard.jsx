@@ -490,7 +490,7 @@ export default function TaskBoard({ token, phone, name, onLogout }) {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs doing?"
+              placeholder="Enter Your Task"
               aria-label="Task title"
               style={{
                 fontFamily: "inherit",
