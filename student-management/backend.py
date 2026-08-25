@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
 import database
 
 
@@ -11,11 +11,36 @@ app = FastAPI(
 )
 
 
-# -------------------------
-# Request Model
-# -------------------------
+# ==================================================
+# CORS
+# ==================================================
 
-class Student(BaseModel):
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ==================================================
+# LOGIN MODEL
+# ==================================================
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+# ==================================================
+# STUDENT BASE MODEL
+# ==================================================
+
+class StudentBase(BaseModel):
     name: str
     email: str
     phone: str
@@ -25,9 +50,25 @@ class Student(BaseModel):
     address: str
 
 
-# -------------------------
-# Home
-# -------------------------
+# ==================================================
+# STUDENT CREATE MODEL
+# ==================================================
+
+class StudentCreate(StudentBase):
+    pass
+
+
+# ==================================================
+# STUDENT UPDATE MODEL
+# ==================================================
+
+class StudentUpdate(StudentBase):
+    pass
+
+
+# ==================================================
+# HOME
+# ==================================================
 
 @app.get("/")
 def home():
@@ -36,9 +77,9 @@ def home():
     }
 
 
-# -------------------------
-# Health Check
-# -------------------------
+# ==================================================
+# HEALTH CHECK
+# ==================================================
 
 @app.get("/health")
 def health_check():
@@ -48,9 +89,32 @@ def health_check():
     }
 
 
-# -------------------------
-# Get All Students
-# -------------------------
+# ==================================================
+# LOGIN
+# ==================================================
+
+@app.post("/login")
+def login(request: LoginRequest):
+
+    if (
+        request.email == "admin@gmail.com"
+        and request.password == "admin123"
+    ):
+        return {
+            "success": True,
+            "token": "student-management-token",
+            "email": request.email
+        }
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid email or password"
+    )
+
+
+# ==================================================
+# GET ALL STUDENTS
+# ==================================================
 
 @app.get("/students")
 def get_students():
@@ -58,11 +122,7 @@ def get_students():
     try:
         students = database.get_all_students()
 
-        return {
-            "success": True,
-            "count": len(students),
-            "students": students
-        }
+        return students
 
     except Exception as e:
 
@@ -71,128 +131,52 @@ def get_students():
             detail=str(e)
         )
 
-@app.get("/students/{student_id}")
-def get_student(student_id: int):
+
+# ==================================================
+# GET SINGLE STUDENT
+# ==================================================
+
+@app.get("/students/{id}")
+def get_student(id: int):
 
     try:
+
         supabase = database.get_supabase_client()
 
         response = (
             supabase
             .table("students")
             .select("*")
-            .eq("id", student_id)
+            .eq("id", id)
             .execute()
         )
 
         if not response.data:
+
             raise HTTPException(
                 status_code=404,
                 detail="Student not found"
             )
 
-        return {
-            "success": True,
-            "student": response.data[0]
-        }
+        return response.data[0]
 
     except HTTPException:
         raise
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
 
-@app.put("/students/{student_id}")
-def update_student(student_id: int, student: Student):
-
-    try:
-        supabase = database.get_supabase_client()
-
-        student_data = {
-            "name": student.name,
-            "email": student.email,
-            "phone": student.phone,
-            "department": student.department,
-            "course": student.course,
-            "year": student.year,
-            "address": student.address
-        }
-
-        response = (
-            supabase
-            .table("students")
-            .update(student_data)
-            .eq("id", student_id)
-            .execute()
-        )
-
-        if not response.data:
-            raise HTTPException(
-                status_code=404,
-                detail="Student not found"
-            )
-
-        return {
-            "success": True,
-            "message": "Student updated successfully",
-            "student": response.data[0]
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=str(e)
         )
 
 
-@app.delete("/students/{student_id}")
-def delete_student(student_id: int):
-
-    try:
-        supabase = database.get_supabase_client()
-
-        response = (
-            supabase
-            .table("students")
-            .delete()
-            .eq("id", student_id)
-            .execute()
-        )
-
-        if not response.data:
-            raise HTTPException(
-                status_code=404,
-                detail="Student not found"
-            )
-
-        return {
-            "success": True,
-            "message": "Student deleted successfully",
-            "student": response.data[0]
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-
-
-# -------------------------
-# Add Student
-# -------------------------
+# ==================================================
+# ADD STUDENT
+# ==================================================
 
 @app.post("/students")
-def add_student(student: Student):
+def add_student(student: StudentCreate):
 
     try:
 
@@ -213,6 +197,105 @@ def add_student(student: Student):
             "message": "Student added successfully",
             "student": response.data
         }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# ==================================================
+# UPDATE STUDENT
+# ==================================================
+
+@app.put("/students/{id}")
+def update_student(
+    id: int,
+    student: StudentUpdate
+):
+
+    try:
+
+        supabase = database.get_supabase_client()
+
+        student_data = {
+            "name": student.name,
+            "email": student.email,
+            "phone": student.phone,
+            "department": student.department,
+            "course": student.course,
+            "year": student.year,
+            "address": student.address
+        }
+
+        response = (
+            supabase
+            .table("students")
+            .update(student_data)
+            .eq("id", id)
+            .execute()
+        )
+
+        if not response.data:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found"
+            )
+
+        return {
+            "success": True,
+            "message": "Student updated successfully",
+            "student": response.data[0]
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# ==================================================
+# DELETE STUDENT
+# ==================================================
+
+@app.delete("/students/{id}")
+def delete_student(id: int):
+
+    try:
+
+        supabase = database.get_supabase_client()
+
+        response = (
+            supabase
+            .table("students")
+            .delete()
+            .eq("id", id)
+            .execute()
+        )
+
+        if not response.data:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found"
+            )
+
+        return {
+            "success": True,
+            "message": "Student deleted successfully",
+            "student": response.data[0]
+        }
+
+    except HTTPException:
+        raise
 
     except Exception as e:
 

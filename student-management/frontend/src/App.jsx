@@ -16,7 +16,7 @@ function loadStoredAuth() {
 
 export default function App() {
   const [auth, setAuth] = useState(loadStoredAuth);
-  const [logoutMessage, setLogoutMessage] = useState(null);
+  const [logoutMessage, setLogoutMessage] = useState("");
 
   const handleLoggedIn = ({ token, email }) => {
     const next = {
@@ -24,23 +24,19 @@ export default function App() {
       email,
     };
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(next)
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 
-    setLogoutMessage(null);
+    setLogoutMessage("");
     setAuth(next);
   };
 
-  const handleLogout = (message) => {
+  const handleLogout = () => {
     localStorage.removeItem(STORAGE_KEY);
 
-    setLogoutMessage(message || null);
     setAuth(null);
+    setLogoutMessage("You have been logged out successfully.");
   };
 
-  // User is not logged in
   if (!auth) {
     return (
       <AuthScreen
@@ -50,7 +46,6 @@ export default function App() {
     );
   }
 
-  // User is logged in
   return (
     <StudentManagement
       token={auth.token}
