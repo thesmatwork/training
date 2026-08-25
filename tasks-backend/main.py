@@ -34,6 +34,13 @@ class PhoneAuthRequest(BaseModel):
 class OtpVerifyRequest(BaseModel):
     phone: str
     token: str  # the OTP code the user received
+    name: Optional[str] = None  # only needed on first-time registration
+
+
+# ---------- Profile models ----------
+
+class ProfileUpdate(BaseModel):
+    name: str = Field(..., min_length=1)
 
 
 # ---------- Task models ----------
@@ -113,12 +120,55 @@ def verify_otp(request: OtpVerifyRequest):
     if response.session is None:
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 
+    user = response.user
+    token = response.session.access_token
+    user_supabase = get_supabase_for_user(token)
+
+    if request.name:
+        user_supabase.table("profiles").upsert({
+            "id": user.id,
+            "phone": user.phone,
+            "name": request.name,
+        }).execute()
+
+    profile = user_supabase.table("profiles").select("*").eq("id", user.id).execute()
+    name_to_return = profile.data[0]["name"] if profile.data else "New User"
+
     return {
         "access_token": response.session.access_token,
         "refresh_token": response.session.refresh_token,
-        "user_id": response.user.id,
-        "phone": response.user.phone,
+        "user_id": user.id,
+        "phone": user.phone,
+        "name": name_to_return,
     }
+
+# ---------- Profile routes ----------
+
+@app.get("/profile")
+def get_profile(current_user: dict = Depends(get_current_user)):
+    user_supabase = get_supabase_for_user(current_user["token"])
+    response = user_supabase.table("profiles").select("*").eq("id", current_user["user"].id).execute()
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    return response.data[0]
+
+
+@app.put("/profile")
+def update_profile(profile: ProfileUpdate, current_user: dict = Depends(get_current_user)):
+    user_supabase = get_supabase_for_user(current_user["token"])
+    try:
+        response = (
+            user_supabase.table("profiles")
+            .update({"name": profile.name})
+            .eq("id", current_user["user"].id)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+    return response.data[0]
 
 
 # ---------- Task routes (protected, scoped to logged-in user) ----------
