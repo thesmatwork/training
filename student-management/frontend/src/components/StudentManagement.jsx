@@ -26,13 +26,8 @@ export default function StudentManagement({ token, email, onLogout }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // ==========================================
-  // Convert API errors into readable messages
-  // ==========================================
   const getErrorMessage = (data, defaultMessage) => {
-    if (!data) {
-      return defaultMessage;
-    }
+    if (!data) return defaultMessage;
 
     if (typeof data.detail === "string") {
       return data.detail;
@@ -59,9 +54,9 @@ export default function StudentManagement({ token, email, onLogout }) {
     return defaultMessage;
   };
 
-  // ==========================================
-  // Load Students
-  // ==========================================
+  // ==============================
+  // LOAD STUDENTS
+  // ==============================
   const loadStudents = async () => {
     try {
       setLoading(true);
@@ -95,9 +90,9 @@ export default function StudentManagement({ token, email, onLogout }) {
     loadStudents();
   }, []);
 
-  // ==========================================
-  // Handle Input
-  // ==========================================
+  // ==============================
+  // INPUT CHANGE
+  // ==============================
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -107,9 +102,9 @@ export default function StudentManagement({ token, email, onLogout }) {
     }));
   };
 
-  // ==========================================
-  // Add / Update
-  // ==========================================
+  // ==============================
+  // ADD / UPDATE
+  // ==============================
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -137,12 +132,6 @@ export default function StudentManagement({ token, email, onLogout }) {
         address: form.address.trim(),
       };
 
-      console.log("Sending request:", {
-        method,
-        url,
-        payload,
-      });
-
       const response = await fetch(url, {
         method,
         headers: {
@@ -155,8 +144,6 @@ export default function StudentManagement({ token, email, onLogout }) {
 
       const data = await response.json();
 
-      console.log("API response:", data);
-
       if (!response.ok) {
         throw new Error(
           getErrorMessage(
@@ -168,28 +155,26 @@ export default function StudentManagement({ token, email, onLogout }) {
         );
       }
 
-      if (isEditing) {
-        setMessage("Student updated successfully.");
-      } else {
-        setMessage("Student added successfully.");
-      }
+      setMessage(
+        isEditing
+          ? "Student updated successfully."
+          : "Student added successfully."
+      );
 
       setForm(emptyForm);
       setEditingId(null);
 
       await loadStudents();
     } catch (err) {
-      console.error("Save error:", err);
-
       setError(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }
   };
 
-  // ==========================================
-  // Edit
-  // ==========================================
+  // ==============================
+  // EDIT
+  // ==============================
   const handleEdit = (student) => {
     setEditingId(student.id);
 
@@ -213,9 +198,9 @@ export default function StudentManagement({ token, email, onLogout }) {
     });
   };
 
-  // ==========================================
-  // Cancel Edit
-  // ==========================================
+  // ==============================
+  // CANCEL EDIT
+  // ==============================
   const handleCancelEdit = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -223,17 +208,15 @@ export default function StudentManagement({ token, email, onLogout }) {
     setError("");
   };
 
-  // ==========================================
-  // Delete
-  // ==========================================
+  // ==============================
+  // DELETE
+  // ==============================
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete student ${id}?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       setError("");
@@ -263,15 +246,13 @@ export default function StudentManagement({ token, email, onLogout }) {
     }
   };
 
-  // ==========================================
-  // Search
-  // ==========================================
+  // ==============================
+  // SEARCH
+  // ==============================
   const filteredStudents = students.filter((student) => {
     const value = search.toLowerCase().trim();
 
-    if (!value) {
-      return true;
-    }
+    if (!value) return true;
 
     return (
       String(student.id ?? "")
@@ -288,79 +269,99 @@ export default function StudentManagement({ token, email, onLogout }) {
         .includes(value) ||
       String(student.course ?? "")
         .toLowerCase()
+        .includes(value) ||
+      String(student.phone ?? "")
+        .toLowerCase()
         .includes(value)
     );
   });
 
   return (
-    <div className="student-page">
+    <div className="student-management">
 
       {/* ================= HEADER ================= */}
 
-      <header className="top-header">
-        <div>
-          <h1>Student Management</h1>
+      <header className="student-header">
+        <h1>Student Management</h1>
 
-          <p>
-            Logged in as: <strong>{email}</strong>
-          </p>
-        </div>
+        <p>
+          Manage your students easily
+        </p>
+      </header>
+
+      {/* ================= USER AREA ================= */}
+
+      <div className="user-section">
+        <span className="welcome-text">
+          Welcome, {email}
+        </span>
 
         <button
           className="logout-btn"
-          onClick={() => onLogout()}
+          onClick={onLogout}
         >
           Logout
         </button>
-      </header>
+      </div>
 
-      <main className="student-container">
+      {/* ================= MESSAGES ================= */}
 
-        {/* ================= MESSAGES ================= */}
+      {message && (
+        <div className="success-message">
+          {message}
+        </div>
+      )}
 
-        {message && (
-          <div className="success-message">
-            {message}
-          </div>
-        )}
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+      {/* ================= ADD STUDENT ================= */}
 
-        {/* ================= FORM ================= */}
+      <section className="student-form-card">
 
-        <section className="student-card">
+        <div className="form-title">
+          <h2>
+            {editingId !== null
+              ? "Edit Student"
+              : "Add Student"}
+          </h2>
 
-          <div className="section-header">
+          <p>
+            {editingId !== null
+              ? `Updating student ID ${editingId}`
+              : "Enter student details below"}
+          </p>
+        </div>
 
-            <div>
-              <h2>
-                {editingId !== null
-                  ? "Edit Student"
-                  : "Add Student"}
-              </h2>
+        <form
+          className="student-form"
+          onSubmit={handleSubmit}
+        >
 
-              <p>
-                {editingId !== null
-                  ? `Updating student ID ${editingId}`
-                  : "Enter student details below"}
-              </p>
-            </div>
+          {/* 
+            IMPORTANT:
+            CSS file is not changed.
+            This inline grid changes only the form
+            from 2 columns to 4 columns.
+          */}
 
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="student-form"
+          <div
+            className="student-form-grid"
+            style={{
+              gridTemplateColumns: "repeat(4, 1fr)",
+            }}
           >
 
-            <div className="form-group">
+            {/* ROW 1 */}
+
+            <div>
               <label>Student ID</label>
 
               <input
+                className="student-input"
                 type="number"
                 name="id"
                 value={form.id}
@@ -371,10 +372,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Name</label>
 
               <input
+                className="student-input"
                 type="text"
                 name="name"
                 value={form.name}
@@ -384,10 +386,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Email</label>
 
               <input
+                className="student-input"
                 type="email"
                 name="email"
                 value={form.email}
@@ -397,10 +400,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Phone</label>
 
               <input
+                className="student-input"
                 type="text"
                 name="phone"
                 value={form.phone}
@@ -409,10 +413,13 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            {/* ROW 2 */}
+
+            <div>
               <label>Department</label>
 
               <input
+                className="student-input"
                 type="text"
                 name="department"
                 value={form.department}
@@ -421,10 +428,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Course</label>
 
               <input
+                className="student-input"
                 type="text"
                 name="course"
                 value={form.course}
@@ -433,10 +441,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Year</label>
 
               <input
+                className="student-input"
                 type="number"
                 name="year"
                 value={form.year}
@@ -446,10 +455,11 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-group">
+            <div>
               <label>Address</label>
 
               <input
+                className="student-input"
                 type="text"
                 name="address"
                 value={form.address}
@@ -458,180 +468,195 @@ export default function StudentManagement({ token, email, onLogout }) {
               />
             </div>
 
-            <div className="form-actions">
+          </div>
 
-              <button
-                type="submit"
-                className="primary-btn"
-                disabled={saving}
-              >
-                {saving
-                  ? editingId !== null
-                    ? "Updating..."
-                    : "Adding..."
-                  : editingId !== null
-                  ? "Update Student"
-                  : "Add Student"}
-              </button>
-
-              {editingId !== null && (
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={handleCancelEdit}
-                >
-                  Cancel
-                </button>
-              )}
-
-            </div>
-
-          </form>
-        </section>
-
-        {/* ================= STUDENTS ================= */}
-
-        <section className="student-card">
-
-          <div className="students-header">
-
-            <div>
-              <h2>Students</h2>
-
-              <p>
-                Total students:{" "}
-                <strong>{students.length}</strong>
-              </p>
-            </div>
+          <div className="form-actions">
 
             <button
-              className="refresh-btn"
-              onClick={loadStudents}
-              disabled={loading}
+              type="submit"
+              className="add-student-btn"
+              disabled={saving}
             >
-              {loading ? "Loading..." : "Refresh"}
+              {saving
+                ? editingId !== null
+                  ? "Updating..."
+                  : "Adding..."
+                : editingId !== null
+                ? "Update Student"
+                : "Add Student"}
             </button>
 
-          </div>
-
-          {/* SEARCH */}
-
-          <div className="search-container">
-
-            <input
-              type="text"
-              placeholder="Search by ID, name, email, department or course..."
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-            />
+            {editingId !== null && (
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+            )}
 
           </div>
 
-          {/* TABLE */}
+        </form>
+      </section>
 
-          {loading ? (
+      {/* ================= STUDENTS ================= */}
 
-            <div className="loading">
-              Loading students...
-            </div>
+      <section className="students-container">
 
-          ) : filteredStudents.length === 0 ? (
+        <div className="students-heading">
 
-            <div className="no-students">
-              No students found.
-            </div>
+          <div>
+            <h2>Students</h2>
 
-          ) : (
+            <p>
+              {students.length}{" "}
+              {students.length === 1
+                ? "student"
+                : "students"}
+            </p>
+          </div>
 
-            <div className="table-container">
+          <button
+            className="refresh-btn"
+            onClick={loadStudents}
+            disabled={loading}
+          >
+            {loading ? "Loading..." : "Refresh"}
+          </button>
 
-              <table className="students-table">
+        </div>
 
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Department</th>
-                    <th>Course</th>
-                    <th>Year</th>
-                    <th>Address</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+        {/* SEARCH */}
 
-                <tbody>
+        <div className="search-section">
 
-                  {filteredStudents.map((student) => (
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Search students..."
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+          />
 
-                    <tr key={student.id}>
+        </div>
 
-                      <td>{student.id}</td>
+        {/* STUDENT LIST */}
 
-                      <td className="student-name">
+        {loading ? (
+          <div className="no-students">
+            Loading students...
+          </div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="no-students">
+            No students found.
+          </div>
+        ) : (
+          <div className="student-list">
+
+            {filteredStudents.map((student) => (
+
+              <article
+                className="student-card"
+                key={student.id}
+              >
+
+                <div className="student-card-left">
+
+                  <div className="student-card-title">
+
+                    <div>
+                      <h3 className="student-name">
                         {student.name}
-                      </td>
+                      </h3>
 
-                      <td>{student.email}</td>
+                      <span className="student-id">
+                        Student ID: {student.id}
+                      </span>
+                    </div>
 
-                      <td>{student.phone}</td>
+                    {student.department && (
+                      <span className="department-badge">
+                        {student.department}
+                      </span>
+                    )}
 
-                      <td>
-                        <span className="badge">
-                          {student.department}
-                        </span>
-                      </td>
+                  </div>
 
-                      <td>{student.course}</td>
+                  <div className="student-details">
 
-                      <td>{student.year}</td>
+                    <div className="student-detail">
+                      <span>Email</span>
+                      <strong>
+                        {student.email || "—"}
+                      </strong>
+                    </div>
 
-                      <td>{student.address}</td>
+                    <div className="student-detail">
+                      <span>Phone</span>
+                      <strong>
+                        {student.phone || "—"}
+                      </strong>
+                    </div>
 
-                      <td>
+                    <div className="student-detail">
+                      <span>Course</span>
+                      <strong>
+                        {student.course || "—"}
+                      </strong>
+                    </div>
 
-                        <div className="action-buttons">
+                    <div className="student-detail">
+                      <span>Year</span>
+                      <strong>
+                        {student.year || "—"}
+                      </strong>
+                    </div>
 
-                          <button
-                            className="edit-btn"
-                            onClick={() =>
-                              handleEdit(student)
-                            }
-                          >
-                            Edit
-                          </button>
+                    <div className="student-detail full-width">
+                      <span>Address</span>
+                      <strong>
+                        {student.address || "—"}
+                      </strong>
+                    </div>
 
-                          <button
-                            className="delete-btn"
-                            onClick={() =>
-                              handleDelete(student.id)
-                            }
-                          >
-                            Delete
-                          </button>
+                  </div>
 
-                        </div>
+                </div>
 
-                      </td>
+                <div className="student-actions">
 
-                    </tr>
+                  <button
+                    className="edit-btn"
+                    onClick={() =>
+                      handleEdit(student)
+                    }
+                  >
+                    Edit
+                  </button>
 
-                  ))}
+                  <button
+                    className="delete-btn"
+                    onClick={() =>
+                      handleDelete(student.id)
+                    }
+                  >
+                    Delete
+                  </button>
 
-                </tbody>
+                </div>
 
-              </table>
+              </article>
 
-            </div>
+            ))}
 
-          )}
+          </div>
+        )}
 
-        </section>
-
-      </main>
+      </section>
 
     </div>
   );
