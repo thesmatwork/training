@@ -86,7 +86,7 @@ export default function AuthScreen({ onLoggedIn, initialMessage }) {
           </div>
 
           {message && (
-            <div className="message error-message">
+            <div className="message success-message">
               {message}
             </div>
           )}
