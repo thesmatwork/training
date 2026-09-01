@@ -3,4 +3,7 @@
 // disagree with each other.
 
 export const MOCK_MODE = false;
-export const API_BASE = "http://127.0.0.1:8000";
+export const API_BASE = "http://127.0.0.1:8000";<<<<<<< Updated upstream
+=======
+export const API_BASE = "https://9ra10rd4k0.execute-api.ap-south-1.amazonaws.com";
+>>>>>>> Stashed changes
