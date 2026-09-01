@@ -6,17 +6,13 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:5174"
-],
+        "http://localhost:5173",
+        "http://localhost:5174"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 api_key = "c74c1ad229b52a9831ae12898c1f4797"
 class WeatherRequest(BaseModel):
     city: str
@@ -33,7 +29,14 @@ def get_weather(request: WeatherRequest):
     response = requests.get(url, params=params)
     data = response.json()
     print(data)
-    temperature = data["main"]["temp"]
+    # if response.status_code != 200:
+    #     return {"error": "Invalid city"}
+    if data.get("main"):
+        temperature = data["main"]["temp"]
+    elif data.get("message"):
+        temperature = data["message"]
+    else:
+        temperature = "Unknwon Error "    
     return {
         "city": request.city,
         "temperature": temperature
