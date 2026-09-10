@@ -344,16 +344,25 @@ function App() {
 
               <>
                 {/* ================= INVALID CITY ================= */}
+<<<<<<< HEAD
                   {weather.invalid === true && (
                 <>
                 <div className="temperature"> 
+=======
+
+                <div className="temperature">
+>>>>>>> b28da6d021a14aab50f760e4f22c821aad606d9e
                   City not found
                 </div>
 
                 <p className="weather-status">
                   Please enter a valid city name.
                 </p>
+<<<<<<< HEAD
                   
+=======
+
+>>>>>>> b28da6d021a14aab50f760e4f22c821aad606d9e
               </>
 
             )}
