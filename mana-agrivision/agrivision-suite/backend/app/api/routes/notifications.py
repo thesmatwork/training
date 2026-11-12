@@ -8,5 +8,5 @@ actions=APIRouter(prefix="/notifications",tags=["Notifications"])
 
 @actions.post("/read-all")
 def read_all(user=Depends(get_current_user)):
-    get_db().table("notifications").update({"read":True}).eq("user_id",user["id"]).execute()
+    get_db().table("notifications").update({"read":True}).eq("user_id",user["user_id"]).execute()
     return {"message":"Notifications marked as read"}

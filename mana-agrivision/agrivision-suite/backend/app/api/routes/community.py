@@ -15,14 +15,14 @@ def list_comments(post_id: str, user=Depends(get_current_user)):
 def add_comment(post_id: str, payload: dict, user=Depends(get_current_user)):
     post = get_db().table("community_posts").select("id").eq("id", post_id).maybe_single().execute().data
     if not post: raise HTTPException(status_code=404, detail="Post not found")
-    return get_db().table("community_comments").insert({"post_id":post_id,"user_id":user["id"],"content":payload.get("content","")}).execute().data[0]
+    return get_db().table("community_comments").insert({"post_id":post_id,"user_id":user["user_id"],"content":payload.get("content","")}).execute().data[0]
 
 @comments.post("/{post_id}/like")
 def toggle_like(post_id: str, user=Depends(get_current_user)):
     db=get_db()
-    existing=db.table("community_likes").select("id").eq("post_id",post_id).eq("user_id",user["id"]).maybe_single().execute().data
+    existing=db.table("community_likes").select("id").eq("post_id",post_id).eq("user_id",user["user_id"]).maybe_single().execute().data
     if existing:
         db.table("community_likes").delete().eq("id",existing["id"]).execute()
         return {"liked":False}
-    db.table("community_likes").insert({"post_id":post_id,"user_id":user["id"]}).execute()
+    db.table("community_likes").insert({"post_id":post_id,"user_id":user["user_id"]}).execute()
     return {"liked":True}

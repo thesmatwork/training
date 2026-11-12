@@ -1,4 +1,5 @@
 
+import logging
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt, JWTError
@@ -12,12 +13,28 @@ from app.core.config import settings
 from app.db.supabase import get_db
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Logger
+logger = logging.getLogger(__name__)
+
+# Password hashing
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+# JWT configuration
 bearer = HTTPBearer(auto_error=False)
 ALGORITHM = "HS256"
 
 
+# --------------------------------------------------
+# PASSWORD HASHING
+# --------------------------------------------------
+
 def hash_password(password: str) -> str:
+    if not password:
+        raise ValueError("Password cannot be empty")
+
     return pwd_context.hash(password)
 
 
@@ -27,31 +44,55 @@ def verify_password(password: str, hashed: str) -> bool:
 
     try:
         return pwd_context.verify(password, hashed)
+
     except (UnknownHashError, ValueError, TypeError):
+        logger.warning("Password verification failed: invalid password hash")
+        return False
+
+    except Exception:
+        logger.exception("Unexpected password verification error")
         return False
 
 
+# --------------------------------------------------
+# JWT TOKEN GENERATION
+# --------------------------------------------------
+
 def create_access_token(subject: str) -> str:
+    if not subject:
+        raise ValueError("User ID cannot be empty")
+
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
 
+    payload = {
+        "sub": str(subject),
+        "exp": expire
+    }
+
     return jwt.encode(
-        {"sub": subject, "exp": expire},
+        payload,
         settings.secret_key,
-        algorithm=ALGORITHM,
+        algorithm=ALGORITHM
     )
 
+
+# --------------------------------------------------
+# GET CURRENT AUTHENTICATED USER
+# --------------------------------------------------
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
 ):
+    # Check authorization header
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         )
 
+    # Verify JWT token
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -62,20 +103,22 @@ def get_current_user(
         user_id = payload.get("sub")
 
         if not user_id:
-            raise ValueError("Missing subject")
+            raise ValueError("Missing user ID in token")
 
     except (JWTError, ValueError):
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired access token",
         )
 
+    # Verify user in Supabase
     try:
+        db = get_db()
+
         result = (
-            get_db()
-            .table("app_users")
+            db.table("app_users")
             .select("*")
-            .eq("user_id", user_id)
+            .eq("user_id", str(user_id))
             .limit(1)
             .execute()
         )
@@ -84,7 +127,7 @@ def get_current_user(
 
         if not user:
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User account not found",
             )
 
@@ -93,8 +136,13 @@ def get_current_user(
     except HTTPException:
         raise
 
-    except Exception as exc:
+    except Exception:
+        logger.exception(
+            "Supabase user verification failed for user_id=%s",
+            user_id
+        )
+
         raise HTTPException(
-            status_code=503,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to verify user account. Check database configuration.",
-        ) from exc
+        )

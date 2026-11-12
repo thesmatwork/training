@@ -8,7 +8,7 @@ router=APIRouter(prefix="/reports",tags=["Reports and Analytics"])
 def summary(farm_id: str | None = None, user=Depends(get_current_user)):
     db=get_db()
     def rows(table):
-        q=db.table(table).select("*").eq("user_id",user["id"])
+        q=db.table(table).select("*").eq("user_id",user["user_id"])
         if farm_id and table in {"crops","expenses","harvests","tasks"}: q=q.eq("farm_id",farm_id)
         return [{**(x.get("data") or {}), "id":x.get("id")} for x in (q.execute().data or [])]
     expenses=rows("expenses")

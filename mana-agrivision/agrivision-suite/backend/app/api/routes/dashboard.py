@@ -12,7 +12,7 @@ def summary(user):
     counts = {}
     for table in TABLES:
         try:
-            r = db.table(table).select("id", count="exact").eq("user_id", user["id"]).execute()
+            r = db.table(table).select("id", count="exact").eq("user_id", user["user_id"]).execute()
             counts[table] = r.count or 0
         except Exception:
             counts[table] = 0

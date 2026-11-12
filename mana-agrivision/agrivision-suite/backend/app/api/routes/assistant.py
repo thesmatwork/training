@@ -20,7 +20,7 @@ def ask(payload: dict, user=Depends(get_current_user)):
             json={"model":"gpt-4o-mini","messages":[{"role":"system","content":"You are a cautious agricultural information assistant. State uncertainty and recommend local agricultural experts for high-risk decisions. Never invent pesticide doses."},{"role":"user","content":question}]},timeout=30)
         response.raise_for_status()
         answer=response.json()["choices"][0]["message"]["content"]
-        saved=get_db().table("assistant_messages").insert({"user_id":user["id"],"data":{"question":question,"answer":answer}}).execute().data[0]
+        saved=get_db().table("assistant_messages").insert({"user_id":user["user_id"],"data":{"question":question,"answer":answer}}).execute().data[0]
         return {**saved.get("data",{}),"id":saved["id"],"user_id":saved["user_id"],"created_at":saved["created_at"]}
     except httpx.HTTPError:
         raise HTTPException(status_code=502, detail="AI provider request failed")
