@@ -1,0 +1,418 @@
+
+.soil-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.soil-page *,
+.soil-page *::before,
+.soil-page *::after {
+  box-sizing: border-box;
+}
+
+.soil-page .workspace-heading {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.soil-page .workspace-heading h1 {
+  margin: 0 0 8px;
+}
+
+.soil-page .workspace-heading p {
+  margin: 0;
+}
+
+.soil-page .soil-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.soil-page .soil-metrics .metric {
+  min-width: 0;
+}
+
+/* Form panel */
+.soil-page .soil-form-panel,
+.soil-page .soil-records-panel {
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  padding: 24px !important;
+  margin: 0 0 24px;
+}
+
+.soil-page .soil-section-heading,
+.soil-page .soil-records-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  color: #174b35;
+}
+
+.soil-page .soil-section-heading h2,
+.soil-page .soil-records-heading h2 {
+  margin: 0 0 6px;
+  color: #174b35;
+  font-size: 20px;
+}
+
+.soil-page .soil-section-heading p,
+.soil-page .soil-records-heading p {
+  margin: 0;
+  color: #718176;
+  font-size: 14px;
+}
+
+/* Form layout */
+.soil-page .soil-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  width: 100%;
+}
+
+.soil-page .soil-form-grid > label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: #174b35;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.soil-page .soil-form-grid input,
+.soil-page .soil-form-grid select,
+.soil-page .soil-form-grid textarea {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #d7e5d9;
+  border-radius: 9px;
+  background: #fff;
+  color: #183b2b;
+  font: inherit;
+  font-size: 14px;
+}
+
+.soil-page .soil-form-grid textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.soil-page .soil-form-grid input:focus,
+.soil-page .soil-form-grid select:focus,
+.soil-page .soil-form-grid textarea:focus {
+  outline: 2px solid #b8dfc3;
+  border-color: #16834a;
+}
+
+.soil-page .soil-notes-field {
+  grid-column: 1 / -1;
+}
+
+.soil-page .soil-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.soil-page .soil-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 10px;
+  background: #12834b;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.soil-page .soil-primary-button:hover {
+  background: #0d6d3d;
+}
+
+.soil-page .soil-primary-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Search and filters */
+.soil-page .soil-record-count {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid #dce8dd;
+  border-radius: 20px;
+  background: #f3f8f3;
+  color: #174b35;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.soil-page .soil-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.soil-page .soil-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 380px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d7e5d9;
+  border-radius: 9px;
+  background: #fff;
+  color: #718176;
+}
+
+.soil-page .soil-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #183b2b;
+  font: inherit;
+  font-size: 14px;
+}
+
+.soil-page .soil-category-filter {
+  width: 210px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d7e5d9;
+  border-radius: 9px;
+  background: #fff;
+  color: #183b2b;
+  font: inherit;
+  font-size: 14px;
+}
+
+/* Records table */
+.soil-page .soil-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e1eae2;
+  border-radius: 10px;
+}
+
+.soil-page .soil-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: #fff;
+  text-align: left;
+}
+
+.soil-page .soil-table th {
+  padding: 15px 14px;
+  border-bottom: 1px solid #dce8dd;
+  background: #f0f7f1;
+  color: #174b35;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.soil-page .soil-table td {
+  padding: 14px;
+  border-bottom: 1px solid #edf1ed;
+  color: #43584a;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.soil-page .soil-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.soil-page .soil-table tbody tr:hover {
+  background: #f8fbf8;
+}
+
+.soil-page .soil-title-cell {
+  color: #174b35 !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.soil-page .soil-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.soil-page .soil-category-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #e9f5ec;
+  color: #176a3d;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.soil-page .soil-notes-cell {
+  max-width: 220px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.soil-page .soil-delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #f1d7d4;
+  border-radius: 8px;
+  background: #fff8f7;
+  color: #b42318;
+  cursor: pointer;
+}
+
+.soil-page .soil-delete-button:hover {
+  background: #feeceb;
+}
+
+.soil-page .soil-delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty state and messages */
+.soil-page .soil-status {
+  padding: 20px 0;
+  color: #718176;
+  font-size: 14px;
+}
+
+.soil-page .soil-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 38px 16px;
+  text-align: center;
+}
+
+.soil-page .soil-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #e7f4e9;
+  color: #16834a;
+}
+
+.soil-page .soil-empty-state h3 {
+  margin: 14px 0 6px;
+  color: #174b35;
+  font-size: 18px;
+}
+
+.soil-page .soil-empty-state p {
+  margin: 0;
+  color: #718176;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.soil-page .soil-message {
+  margin: 16px 0 0;
+  font-size: 14px;
+}
+
+.soil-page .soil-error {
+  color: #b42318;
+}
+
+.soil-page .soil-success {
+  color: #16834a;
+}
+
+/* Responsive */
+@media (max-width: 850px) {
+  .soil-page .soil-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .soil-page .soil-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .soil-page .soil-form-panel,
+  .soil-page .soil-records-panel {
+    padding: 16px !important;
+  }
+
+  .soil-page .soil-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .soil-page .soil-notes-field {
+    grid-column: auto;
+  }
+
+  .soil-page .soil-form-actions {
+    justify-content: stretch;
+  }
+
+  .soil-page .soil-primary-button {
+    width: 100%;
+  }
+
+  .soil-page .soil-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .soil-page .soil-search {
+    max-width: none;
+    width: 100%;
+  }
+
+  .soil-page .soil-category-filter {
+    width: 100%;
+  }
+
+  .soil-page .soil-records-heading {
+    align-items: flex-start;
+  }
+}
