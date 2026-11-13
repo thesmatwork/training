@@ -59,6 +59,9 @@ def verify_password(password: str, hashed: str) -> bool:
 # --------------------------------------------------
 
 def create_access_token(subject: str) -> str:
+    if not settings.secret_key:
+        raise HTTPException(status_code=503, detail="SECRET_KEY is not configured in backend/.env")
+
     if not subject:
         raise ValueError("User ID cannot be empty")
 
@@ -93,6 +96,9 @@ def get_current_user(
         )
 
     # Verify JWT token
+    if not settings.secret_key:
+        raise HTTPException(status_code=503, detail="SECRET_KEY is not configured")
+
     try:
         payload = jwt.decode(
             credentials.credentials,

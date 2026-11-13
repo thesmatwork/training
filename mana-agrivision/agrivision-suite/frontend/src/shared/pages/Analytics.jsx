@@ -16,21 +16,7 @@ import {
   Wallet,
 } from "lucide-react";
 import "./Analytics.css";
-
-const SAMPLE_DATA = [
-  { id: 1, farm: "North Farm", crop: "Rice", month: "2026-05", yield: 4200, revenue: 105000, expenses: 62000 },
-  { id: 2, farm: "North Farm", crop: "Rice", month: "2026-06", yield: 4500, revenue: 112500, expenses: 65000 },
-  { id: 3, farm: "North Farm", crop: "Cotton", month: "2026-07", yield: 1800, revenue: 144000, expenses: 80000 },
-  { id: 4, farm: "North Farm", crop: "Cotton", month: "2026-08", yield: 1950, revenue: 156000, expenses: 83000 },
-  { id: 5, farm: "South Farm", crop: "Maize", month: "2026-05", yield: 3200, revenue: 64000, expenses: 35000 },
-  { id: 6, farm: "South Farm", crop: "Maize", month: "2026-06", yield: 3500, revenue: 70000, expenses: 37000 },
-  { id: 7, farm: "South Farm", crop: "Rice", month: "2026-07", yield: 4800, revenue: 120000, expenses: 70000 },
-  { id: 8, farm: "South Farm", crop: "Rice", month: "2026-08", yield: 5100, revenue: 127500, expenses: 72000 },
-  { id: 9, farm: "East Farm", crop: "Chilli", month: "2026-05", yield: 900, revenue: 81000, expenses: 42000 },
-  { id: 10, farm: "East Farm", crop: "Chilli", month: "2026-06", yield: 1050, revenue: 94500, expenses: 46000 },
-  { id: 11, farm: "East Farm", crop: "Cotton", month: "2026-07", yield: 1600, revenue: 128000, expenses: 76000 },
-  { id: 12, farm: "East Farm", crop: "Cotton", month: "2026-08", yield: 1750, revenue: 140000, expenses: 79000 },
-];
+import { api } from "../services/api.js";
 
 const money = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -242,7 +228,7 @@ function DonutChart({ data }) {
 }
 
 export default function Analytics() {
-  const [records, setRecords] = useState(SAMPLE_DATA);
+  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLive, setIsLive] = useState(false);
@@ -255,36 +241,72 @@ export default function Analytics() {
   const endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
 
   const loadData = async () => {
-    if (!endpoint) {
-      setRecords(SAMPLE_DATA);
-      setIsLive(false);
-      setError("");
-      return;
-    }
-
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch(endpoint);
+      const [farmsResult, cropsResult, expensesResult, harvestsResult] =
+        await Promise.all([
+          api("/api/v1/farms"),
+          api("/api/v1/crops"),
+          api("/api/v1/expenses"),
+          api("/api/v1/harvests"),
+        ]);
 
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
+      const farms = Array.isArray(farmsResult) ? farmsResult : [];
+      const crops = Array.isArray(cropsResult) ? cropsResult : [];
+      const expenses = Array.isArray(expensesResult) ? expensesResult : [];
+      const harvests = Array.isArray(harvestsResult) ? harvestsResult : [];
 
-      const result = await response.json();
-      const list = Array.isArray(result)
-        ? result
-        : result.records ?? result.data ?? result.items;
+      const farmNames = new Map(farms.map((farm) => [farm.id, farm.farm_name || farm.name || "Unassigned Farm"]));
+      const cropNames = new Map(crops.map((crop) => [crop.id, crop.crop_name || crop.name || "Unspecified"]));
+      const grouped = new Map();
 
-      if (!Array.isArray(list)) {
-        throw new Error("The API response does not contain a records array.");
-      }
+      const monthOf = (value) => {
+        if (!value) return new Date().toISOString().slice(0, 7);
+        const parsed = typeof value === "number"
+          ? new Date(value < 1000000000000 ? value * 1000 : value)
+          : new Date(value);
+        return Number.isNaN(parsed.getTime())
+          ? new Date().toISOString().slice(0, 7)
+          : parsed.toISOString().slice(0, 7);
+      };
 
-      setRecords(list.map(normalizeRecord));
+      const add = ({ farmId, crop, date, yieldKg = 0, revenue = 0, expense = 0 }) => {
+        const month = monthOf(date);
+        const farmName = farmNames.get(farmId) || "Unassigned Farm";
+        const cropName = crop || "Unspecified";
+        const key = `${farmName}|${cropName}|${month}`;
+        const current = grouped.get(key) || {
+          farm: farmName, crop: cropName, month, yield: 0, revenue: 0, expenses: 0,
+        };
+        current.yield += Number(yieldKg) || 0;
+        current.revenue += Number(revenue) || 0;
+        current.expenses += Number(expense) || 0;
+        grouped.set(key, current);
+      };
+
+      expenses.forEach((item) => add({
+        farmId: item.farm_id,
+        crop: cropNames.get(item.crop_id) || item.crop_name || "All crops",
+        date: item.transaction_date || item.date || item.created_at,
+        expense: item.amount,
+      }));
+
+      harvests.forEach((item) => add({
+        farmId: item.farm_id,
+        crop: item.crop_name || cropNames.get(item.crop_id),
+        date: item.record_date || item.date || item.created_at,
+        yieldKg: item.yield_kg || item.yield || item.production,
+        revenue: item.revenue || item.total_amount,
+      }));
+
+      setRecords(Array.from(grouped.values()).map(normalizeRecord));
       setIsLive(true);
     } catch (err) {
       setError(err.message || "Unable to load analytics data.");
+      setRecords([]);
+      setIsLive(false);
     } finally {
       setLoading(false);
     }

@@ -5,12 +5,20 @@ from app.core.config import settings
 from app.api.routes.resource_factory import build_router
 
 router = APIRouter(prefix="/market", tags=["Market Prices"])
-watch_router = build_router("/market/watchlist", "market_watchlist", "Market Watchlist")
+watch_router = build_router("/market/watchlist", "app_records", "Market Watchlist", {"category": "market_watchlist", "kind": "market_watchlist"})
 
 @router.get("/prices")
 def market_prices(crop: str = Query(...), market: str | None = None, state: str | None = None, user=Depends(get_current_user)):
     if not settings.market_price_api_url:
-        raise HTTPException(status_code=503, detail="Market price provider is not configured. Configure MARKET_PRICE_API_URL and its credentials.")
+        # Fallback to market prices already stored in the existing Supabase table.
+        from app.db.supabase import get_db
+        query = get_db().table("market_data").select("*").eq("owner_id", user["user_id"]).ilike("crop_name", crop)
+        if market:
+            query = query.ilike("market_name", f"%{market}%")
+        if state:
+            query = query.ilike("state", f"%{state}%")
+        rows = query.order("price_date", desc=True).limit(100).execute().data or []
+        return {"items": rows, "source": "Supabase market_data"}
     try:
         headers = {"Authorization": f"Bearer {settings.market_price_api_key}"} if settings.market_price_api_key else {}
         response = httpx.get(settings.market_price_api_url, params={"crop": crop, "market": market, "state": state}, headers=headers, timeout=15)

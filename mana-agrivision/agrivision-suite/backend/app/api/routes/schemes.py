@@ -1,15 +1,24 @@
 from fastapi import APIRouter, Depends
 from app.core.security import get_current_user
-from app.db.supabase import get_db
-from app.api.routes.resource_factory import build_router
+from app.services.resources import list_owned, create_owned
 
-router = build_router("/schemes/saved", "saved_schemes", "Saved Government Schemes")
+router = APIRouter(prefix="/schemes/saved", tags=["Saved Government Schemes"])
 catalog = APIRouter(prefix="/schemes", tags=["Government Schemes"])
 
+
+@router.get("")
+def saved_schemes(user=Depends(get_current_user)):
+    return list_owned("app_records", user["user_id"], fixed_filters={"category": "scheme", "kind": "saved"})
+
+
+@router.post("", status_code=201)
+def save_scheme(payload: dict, user=Depends(get_current_user)):
+    return create_owned("app_records", user["user_id"], payload,
+                        {"category": "scheme", "kind": "saved"})
+
+
 @catalog.get("")
-def list_schemes(state: str | None = None, crop: str | None = None, category: str | None = None, user=Depends(get_current_user)):
-    q=get_db().table("government_schemes").select("*").eq("published",True)
-    if state: q=q.or_(f"state.eq.{state},state.eq.All India")
-    if crop: q=q.contains("crops",[crop])
-    if category: q=q.eq("category",category)
-    return q.order("last_verified_at",desc=True).execute().data or []
+def list_schemes(state: str | None = None, crop: str | None = None,
+                 category: str | None = None, user=Depends(get_current_user)):
+    # The supplied Supabase schema has no verified public government-schemes catalogue table.
+    return {"items": [], "message": "Government scheme catalogue is not connected yet; no unverified schemes are shown."}

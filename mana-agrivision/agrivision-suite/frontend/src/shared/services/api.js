@@ -17,7 +17,7 @@ export function clearSession() {
 
 function normalizeApiPath(path) {
   // The FastAPI resource router names soil records `/soil`; the UI label is `/soil-irrigation`.
-  return path.replace(/^\/api\/v1\/soil-irrigation(?=\/|\\?|$)/, '/api/v1/soil');
+  return path.replace(/^\/api\/v1\/soil-irrigation(?=\/|\?|$)/, '/api/v1/soil');
 }
 
 export async function api(path, options = {}) {

@@ -847,6 +847,24 @@ export function LegacyWorkspace({ page }) {
     assistant: ['AI farming assistant', 'assistant', 'Question']
   };
 
+  const endpointMap = {
+    farms: 'farms',
+    crops: 'crops',
+    tasks: 'tasks',
+    expenses: 'expenses',
+    inventory: 'inventory',
+    'soil-irrigation': 'soil-irrigation',
+    expert: 'experts/questions',
+    community: 'community/posts',
+    learning: 'learning/progress',
+    schemes: 'schemes/saved',
+    marketplace: 'marketplace/listings',
+    disease: 'disease/reports',
+    market: 'market/watchlist',
+    assistant: 'assistant/conversations',
+  };
+  const endpoint = endpointMap[page] || page;
+
   useEffect(() => {
     let active = true;
 
@@ -860,7 +878,7 @@ export function LegacyWorkspace({ page }) {
       };
     }
 
-    api(`/api/v1/${page}`)
+    api(`/api/v1/${endpoint}`)
       .then(data => {
         if (!active) return;
         setItems(Array.isArray(data) ? data : data.items || []);
@@ -875,7 +893,7 @@ export function LegacyWorkspace({ page }) {
     return () => {
       active = false;
     };
-  }, [page]);
+  }, [endpoint]);
 
   async function create(event) {
     event.preventDefault();
@@ -883,7 +901,7 @@ export function LegacyWorkspace({ page }) {
     setNotice('');
 
     try {
-      const result = await api(`/api/v1/${page}`, {
+      const result = await api(`/api/v1/${endpoint}`, {
         method: 'POST',
         body: JSON.stringify({
           data: {
@@ -1016,9 +1034,18 @@ export function LegacyWorkspace({ page }) {
 
           <button
             className="btn-primary"
-            onClick={() => {
-              localStorage.setItem('mana_user', JSON.stringify(user));
-              setNotice('Profile saved in this browser.');
+            onClick={async () => {
+              try {
+                const updated = await api('/api/v1/auth/me', {
+                  method: 'PATCH',
+                  body: JSON.stringify({ name: user.name, level: user.level }),
+                });
+                localStorage.setItem('mana_user', JSON.stringify(updated));
+                setUser(updated);
+                setNotice('Profile saved successfully.');
+              } catch (err) {
+                setError(err.message || 'Unable to save profile.');
+              }
             }}
           >
             Save profile

@@ -11,7 +11,20 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list,
 
 @app.get("/health", tags=["Health"])
 def health():
-    return {"status":"ok","service":"mana-agrivision-api","database":"configured" if settings.supabase_url else "not_configured"}
+    return {"status":"ok","service":"mana-agrivision-api","database":"configured" if (settings.supabase_url and settings.supabase_service_role_key) else "not_configured"}
+
+
+
+@app.get("/health/db", tags=["Health"])
+def database_health():
+    from fastapi import HTTPException
+    from app.db.supabase import get_db
+    try:
+        get_db().table("app_users").select("user_id").limit(1).execute()
+        return {"status": "ok", "database": "connected"}
+    except Exception as exc:
+        print(f"Supabase health check failed: {exc}")
+        raise HTTPException(status_code=503, detail="Supabase connection failed")
 
 @app.get("/", tags=["Health"])
 def root():
