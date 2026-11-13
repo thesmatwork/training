@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     openweather_api_key: str = ""
     weather_provider_url: str = "https://api.openweathermap.org/data/2.5/weather"
-    market_price_api_url: str = ""
+    market_price_api_url: str = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
     market_price_api_key: str = ""
     openai_api_key: str = ""
     google_client_id: str = ""
